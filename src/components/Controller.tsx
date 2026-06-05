@@ -3,7 +3,7 @@ import {
   Users, 
   Database, 
   Bell, 
-  RotateCcw, 
+  RotateCcw,
   VolumeX, 
   Volume2,
   Lock
@@ -95,11 +95,11 @@ export const Controller: React.FC<ControllerProps> = ({
           <Database size={16} color="#fff" />
         </div>
         <div>
-          <h1 style={{ fontSize: '1rem', fontWeight: 700, margin: 0, background: 'linear-gradient(90deg, #fff, var(--text-secondary))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+          <h1 style={{ fontSize: '1rem', fontWeight: 700, margin: 0, background: 'linear-gradient(90deg, var(--color-primary), #a855f7)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
             CimpleSoft TimeTracker
           </h1>
           <span style={{ fontSize: '0.65rem', color: 'var(--color-primary)', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-            Power Platform / Dynamics 365 POC
+             Dynamics  POC
           </span>
         </div>
       </div>
@@ -135,7 +135,7 @@ export const Controller: React.FC<ControllerProps> = ({
         </button>
 
         {/* Database Explorer Button */}
-        <button 
+        {/* <button 
           onClick={() => { playClick(); setDbDrawerOpen(!dbDrawerOpen); }}
           className="btn btn-secondary" 
           style={{ display: 'flex', gap: '6px', alignItems: 'center', border: dbDrawerOpen ? '1px solid var(--color-primary)' : '1px solid var(--glass-border)' }}
@@ -151,7 +151,7 @@ export const Controller: React.FC<ControllerProps> = ({
           }}>
             {Object.keys(db).length} tables
           </span>
-        </button>
+        </button> */}
 
         {/* Notifications */}
         <div style={{ position: 'relative' }}>
@@ -167,7 +167,7 @@ export const Controller: React.FC<ControllerProps> = ({
                 top: '-4px',
                 right: '-4px',
                 background: 'var(--color-danger)',
-                color: '#fff',
+                color: 'var(--text-primary)',
                 fontSize: '0.65rem',
                 fontWeight: 700,
                 width: '18px',

@@ -52,7 +52,7 @@ export const BackOfficePM: React.FC<BackOfficePMProps> = ({
       return t.status === 'Submitted';
     }
     // Show all except drafts
-    return t.status !== 'Draft' && t.status !== 'Recalled';
+    return t.status !== 'Draft';
   });
 
   const selectedTimesheet = db.timesheets.find(t => t.id === selectedTimesheetId);
@@ -147,7 +147,7 @@ export const BackOfficePM: React.FC<BackOfficePMProps> = ({
           <span style={{ fontSize: '0.65rem', color: 'var(--color-primary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             Dynamics 365 Back Office
           </span>
-          <h3 style={{ fontSize: '1rem', color: '#fff', marginTop: '2px' }}>Project Manager</h3>
+          <h3 style={{ fontSize: '1rem', color: 'var(--text-primary)', marginTop: '2px' }}>Project Manager</h3>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -175,7 +175,7 @@ export const BackOfficePM: React.FC<BackOfficePMProps> = ({
             </div>
             <span style={{
               background: 'var(--color-primary)',
-              color: '#fff',
+              color: 'var(--text-primary)',
               fontSize: '0.7rem',
               padding: '2px 6px',
               borderRadius: '4px',
@@ -222,7 +222,7 @@ export const BackOfficePM: React.FC<BackOfficePMProps> = ({
         {/* Timesheet List Header */}
         <div className="glass-panel" style={{ padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <h2 style={{ fontSize: '1.2rem', color: '#fff' }}>
+            <h2 style={{ fontSize: '1.2rem', color: 'var(--text-primary)' }}>
               {filter === 'Pending' ? 'Timesheet Approvals Queue' : 'All Logs'}
             </h2>
             <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
@@ -270,7 +270,7 @@ export const BackOfficePM: React.FC<BackOfficePMProps> = ({
                       }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <strong style={{ color: '#fff', fontSize: '0.9rem' }}>{emp?.name}</strong>
+                        <strong style={{ color: 'var(--text-primary)', fontSize: '0.9rem' }}>{emp?.name}</strong>
                         <span className={`badge badge-${ts.status.toLowerCase()}`} style={{ fontSize: '0.65rem' }}>
                           {ts.status}
                         </span>
@@ -315,7 +315,7 @@ export const BackOfficePM: React.FC<BackOfficePMProps> = ({
               {/* Detail Header */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid var(--glass-border)', paddingBottom: '12px' }}>
                 <div>
-                  <h3 style={{ fontSize: '1.1rem', color: '#fff' }}>Reviewing Timesheet</h3>
+                  <h3 style={{ fontSize: '1.1rem', color: 'var(--text-primary)' }}>Reviewing Timesheet</h3>
                   <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                     Employee: <strong>{selectedEmployee.name}</strong> ({selectedEmployee.region} Region) | Week of: <strong>{selectedTimesheet.weekStartDate}</strong>
                   </span>
@@ -429,7 +429,7 @@ export const BackOfficePM: React.FC<BackOfficePMProps> = ({
                                   padding: '12px 6px', 
                                   textAlign: 'center',
                                   background: isHoliday ? 'rgba(245, 158, 11, 0.04)' : 'transparent',
-                                  color: hrs > 0 ? '#fff' : 'var(--text-muted)'
+                                  color: hrs > 0 ? 'var(--text-primary)' : 'var(--text-muted)'
                                 }}
                                 title={comment ? `Comment: ${comment}` : undefined}
                               >

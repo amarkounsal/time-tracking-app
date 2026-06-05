@@ -202,9 +202,9 @@ export const DashboardFinance: React.FC<DashboardFinanceProps> = ({
           <span style={{ fontSize: '0.65rem', color: '#f2c811', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             Interactive Analytics Dashboard
           </span>
-          <h2 style={{ fontSize: '1.4rem', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
+          <h2 style={{ fontSize: '1.4rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
             <TrendingUp size={20} style={{ color: '#f2c811' }} />
-            Power BI: CimpleSoft Utilization & Hours Report
+            CimpleSoft Utilization & Hours Report
           </h2>
         </div>
         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'right' }}>
@@ -223,7 +223,7 @@ export const DashboardFinance: React.FC<DashboardFinanceProps> = ({
           </div>
           <div>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Total Approved actuals</div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#fff', marginTop: '2px' }}>
+            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px' }}>
               {totalApprovedActualHours}h
             </div>
             <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Planned Target: {totalAssignedPlannedHours}h</div>
@@ -237,7 +237,7 @@ export const DashboardFinance: React.FC<DashboardFinanceProps> = ({
           </div>
           <div>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Avg. Consultant Util.</div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#fff', marginTop: '2px' }}>
+            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px' }}>
               {utilizationReport.length > 0 
                 ? Math.round(utilizationReport.reduce((acc,u) => acc + u.utilization, 0) / utilizationReport.length)
                 : 0}%
@@ -252,7 +252,7 @@ export const DashboardFinance: React.FC<DashboardFinanceProps> = ({
           </div>
           <div>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Awaiting Approvals</div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#fff', marginTop: '2px' }}>
+            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px' }}>
               {pendingApprovalsReport.length} sheets
             </div>
           </div>
@@ -265,7 +265,7 @@ export const DashboardFinance: React.FC<DashboardFinanceProps> = ({
           </div>
           <div>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Holiday Work Entries</div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#fff', marginTop: '2px' }}>
+            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px' }}>
               {holidayExceptionsReport.length} logged
             </div>
           </div>
@@ -278,7 +278,7 @@ export const DashboardFinance: React.FC<DashboardFinanceProps> = ({
         
         {/* CHART 1: PROJECT ACTUALS VS PLANNED */}
         <div className="glass-panel" style={{ padding: '20px' }}>
-          <h3 style={{ fontSize: '1rem', color: '#fff', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <h3 style={{ fontSize: '1rem', color: 'var(--text-primary)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <BarChart3 size={16} style={{ color: '#f2c811' }} />
             Project Hours: Actual vs. Planned Comparison
           </h3>
@@ -351,7 +351,7 @@ export const DashboardFinance: React.FC<DashboardFinanceProps> = ({
                     }
                     return employeesList.map(([empName, hrs], idx) => (
                       <tr key={`${proj.name}_${empName}`} style={{ borderBottom: '1px solid var(--glass-border)' }}>
-                        <td style={{ padding: '8px', fontWeight: idx === 0 ? 600 : 400, color: idx === 0 ? '#fff' : 'var(--text-secondary)' }}>
+                        <td style={{ padding: '8px', fontWeight: idx === 0 ? 600 : 400, color: idx === 0 ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
                           {idx === 0 ? proj.name : ''}
                         </td>
                         <td style={{ padding: '8px' }}>{empName}</td>
@@ -368,7 +368,7 @@ export const DashboardFinance: React.FC<DashboardFinanceProps> = ({
 
         {/* CHART 2: CONSULTANT UTILIZATION GAUGE & BENCHMARK */}
         <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <h3 style={{ fontSize: '1rem', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <h3 style={{ fontSize: '1rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Percent size={16} style={{ color: '#f2c811' }} />
             Resource Utilization (Target: 80% Benchmark)
           </h3>
@@ -384,7 +384,7 @@ export const DashboardFinance: React.FC<DashboardFinanceProps> = ({
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
                     <strong>{c.name}</strong>
                     <span>
-                      Billable: <strong style={{ color: '#fff' }}>{c.billable}h</strong> | Util: <strong style={{ color: meetsTarget ? 'var(--color-success)' : 'var(--color-warning)' }}>{c.utilization}%</strong>
+                      Billable: <strong style={{ color: 'var(--text-primary)' }}>{c.billable}h</strong> | Util: <strong style={{ color: meetsTarget ? 'var(--color-success)' : 'var(--color-warning)' }}>{c.utilization}%</strong>
                     </span>
                   </div>
 
@@ -404,7 +404,7 @@ export const DashboardFinance: React.FC<DashboardFinanceProps> = ({
                       top: 0,
                       bottom: 0,
                       width: '2px',
-                      borderLeft: '2px dashed #fff',
+                      borderLeft: '2px dashed var(--text-muted)',
                       opacity: 0.7,
                     }} title="80% Target Benchmark" />
                     <span style={{
@@ -412,7 +412,7 @@ export const DashboardFinance: React.FC<DashboardFinanceProps> = ({
                       left: '81%',
                       top: '2px',
                       fontSize: '0.55rem',
-                      color: '#fff',
+                      color: 'var(--text-primary)',
                       opacity: 0.6,
                       fontWeight: 700
                     }}>
@@ -443,7 +443,7 @@ export const DashboardFinance: React.FC<DashboardFinanceProps> = ({
         
         {/* REPORT 3: PENDING APPROVALS AGING */}
         <div className="glass-panel" style={{ padding: '20px' }}>
-          <h3 style={{ fontSize: '1rem', color: '#fff', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <h3 style={{ fontSize: '1rem', color: 'var(--text-primary)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Clock size={16} style={{ color: '#f2c811' }} />
             Submitted Timesheets - Approvals Aging
           </h3>
@@ -469,7 +469,7 @@ export const DashboardFinance: React.FC<DashboardFinanceProps> = ({
                 ) : (
                   pendingApprovalsReport.map(item => (
                     <tr key={item.id} style={{ borderBottom: '1px solid var(--glass-border)' }}>
-                      <td style={{ padding: '10px 8px', fontWeight: 600, color: '#fff' }}>{item.employeeName}</td>
+                      <td style={{ padding: '10px 8px', fontWeight: 600, color: 'var(--text-primary)' }}>{item.employeeName}</td>
                       <td style={{ padding: '10px 8px' }}>{item.weekStartDate}</td>
                       <td style={{ padding: '10px 8px', textAlign: 'center' }}>{item.totalHrs}h</td>
                       <td style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 700, color: item.hoursPending >= 24 ? 'var(--color-danger)' : 'var(--color-info)' }}>
@@ -492,7 +492,7 @@ export const DashboardFinance: React.FC<DashboardFinanceProps> = ({
 
         {/* REPORT 4: HOLIDAY EXCEPTIONS LOG */}
         <div className="glass-panel" style={{ padding: '20px' }}>
-          <h3 style={{ fontSize: '1rem', color: '#fff', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <h3 style={{ fontSize: '1rem', color: 'var(--text-primary)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <AlertOctagon size={16} style={{ color: '#f2c811' }} />
             Holiday Work Exceptions Audit Log
           </h3>
@@ -518,7 +518,7 @@ export const DashboardFinance: React.FC<DashboardFinanceProps> = ({
                 ) : (
                   holidayExceptionsReport.map((ex, i) => (
                     <tr key={i} style={{ borderBottom: '1px solid var(--glass-border)' }}>
-                      <td style={{ padding: '10px 8px', fontWeight: 600, color: '#fff' }}>{ex.employeeName}</td>
+                      <td style={{ padding: '10px 8px', fontWeight: 600, color: 'var(--text-primary)' }}>{ex.employeeName}</td>
                       <td style={{ padding: '10px 8px' }}>{ex.date}</td>
                       <td style={{ padding: '10px 8px', color: 'var(--color-warning)' }}>{ex.holidayName}</td>
                       <td style={{ padding: '10px 8px', textAlign: 'center', fontWeight: 700 }}>{ex.hours}h</td>

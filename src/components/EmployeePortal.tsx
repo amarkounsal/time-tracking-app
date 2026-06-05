@@ -232,7 +232,7 @@ export const EmployeePortal: React.FC<EmployeePortalProps> = ({
 
   const showToast = (text: string, type: 'success' | 'error') => {
     setMessage({ text, type });
-    setTimeout(() => setMessage(null), 5000);
+    setTimeout(() => setMessage(null), 5050);
   };
 
   return (
@@ -241,7 +241,7 @@ export const EmployeePortal: React.FC<EmployeePortalProps> = ({
       {/* Title block */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h2 style={{ fontSize: '1.4rem', color: '#fff', marginBottom: '4px' }}>Employee Timesheet Portal</h2>
+          <h2 style={{ fontSize: '1.4rem', color: 'var(--text-primary)', marginBottom: '4px' }}>Employee Timesheet Portal</h2>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
             Welcome back, <strong>{employee.name}</strong> ({employee.region} Region). Manage and submit your weekly hours below.
           </p>
@@ -398,7 +398,7 @@ export const EmployeePortal: React.FC<EmployeePortalProps> = ({
                     <tr key={line.projectId} style={{ borderBottom: '1px solid var(--glass-border)' }}>
                       {/* Project Info */}
                       <td style={{ padding: '16px 12px' }}>
-                        <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#fff' }}>{project?.name}</div>
+                        <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)' }}>{project?.name}</div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{project?.client}</div>
                         <span style={{ fontSize: '0.65rem', padding: '2px 6px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', textTransform: 'capitalize', marginTop: '4px', display: 'inline-block' }}>
                           {project?.type}
@@ -443,7 +443,7 @@ export const EmployeePortal: React.FC<EmployeePortalProps> = ({
                                         ? '1px solid var(--color-warning)' 
                                         : '1px solid var(--glass-border)',
                                   borderRadius: '6px',
-                                  color: hrs > 0 ? '#fff' : 'var(--text-muted)',
+                                  color: hrs > 0 ? 'var(--text-primary)' : 'var(--text-muted)',
                                   textAlign: 'center',
                                   fontSize: '0.9rem',
                                   fontWeight: hrs > 0 ? 700 : 400,
@@ -485,7 +485,7 @@ export const EmployeePortal: React.FC<EmployeePortalProps> = ({
                       })}
 
                       {/* Project Row Total */}
-                      <td style={{ padding: '12px', textAlign: 'center', fontWeight: 700, fontSize: '0.95rem', color: '#fff' }}>
+                      <td style={{ padding: '12px', textAlign: 'center', fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)' }}>
                         {projectTotals[projIdx]}h
                       </td>
                     </tr>
@@ -499,7 +499,7 @@ export const EmployeePortal: React.FC<EmployeePortalProps> = ({
                 <tr style={{ background: 'var(--bg-secondary)', borderTop: '2px solid var(--glass-border)' }}>
                   <td style={{ padding: '16px 12px', fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Daily Totals</td>
                   {dailyTotals.map((tot, idx) => (
-                    <td key={idx} style={{ padding: '16px 6px', textAlign: 'center', fontWeight: 700, fontSize: '0.95rem', color: tot > 40 ? 'var(--color-danger)' : '#fff' }}>
+                    <td key={idx} style={{ padding: '16px 6px', textAlign: 'center', fontWeight: 700, fontSize: '0.95rem', color: tot > 40 ? 'var(--color-danger)' : 'var(--text-primary)' }}>
                       {tot}h
                     </td>
                   ))}
@@ -570,7 +570,7 @@ export const EmployeePortal: React.FC<EmployeePortalProps> = ({
 
       {/* History Log Panel */}
       <div className="glass-panel" style={{ padding: '20px' }}>
-        <h3 style={{ fontSize: '1rem', color: '#fff', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <h3 style={{ fontSize: '1rem', color: 'var(--text-primary)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <History size={16} style={{ color: 'var(--color-primary)' }} />
           Timesheet History & Status Log
         </h3>
@@ -609,7 +609,7 @@ export const EmployeePortal: React.FC<EmployeePortalProps> = ({
                           background: selectedWeek === ts.weekStartDate ? 'rgba(255, 255, 255, 0.02)' : 'transparent'
                         }}
                       >
-                        <td style={{ padding: '12px 10px', fontWeight: 600, color: '#fff' }}>
+                        <td style={{ padding: '12px 10px', fontWeight: 600, color: 'var(--text-primary)' }}>
                           Week of {ts.weekStartDate}
                         </td>
                         <td style={{ padding: '12px 10px' }}>

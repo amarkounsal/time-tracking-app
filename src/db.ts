@@ -32,7 +32,7 @@ export interface Timesheet {
   id: string;
   employeeId: string;
   weekStartDate: string; // YYYY-MM-DD (always a Monday)
-  status: 'Draft' | 'Submitted' | 'Approved' | 'Rejected' | 'Recalled';
+  status: 'Draft' | 'Submitted' | 'Approved' | 'Rejected';
   submittedAt: string | null;
   rejectionReason: string | null;
   slaExpiresAt: string | null; // Timestamp
@@ -66,426 +66,432 @@ export interface DataverseDatabase {
   notifications: SystemNotification[];
 }
 
-const LOCAL_STORAGE_KEY = 'cimple_soft_time_tracker_db';
+const API_BASE_URL = (import.meta.env.VITE_API_URL as string) || 'http://192.168.1.75:5050/api';
 
-export const DEFAULT_EMPLOYEES: Employee[] = [
-  { id: 'emp_elena', name: 'Elena Vance', role: 'Employee', email: 'elena.vance@cimplesoft.local', region: 'US' },
-  { id: 'emp_john', name: 'John Doe', role: 'Employee', email: 'john.doe@cimplesoft.local', region: 'IN' },
-  { id: 'emp_marcus', name: 'Marcus Vance', role: 'Manager', email: 'marcus.vance@cimplesoft.local', region: 'Global' },
-  { id: 'emp_sarah', name: 'Sarah Jenkins', role: 'HR', email: 'sarah.jenkins@cimplesoft.local', region: 'Global' },
-  { id: 'emp_david', name: 'David Chen', role: 'Finance', email: 'david.chen@cimplesoft.local', region: 'Global' },
-];
+export const EMPTY_DATABASE: DataverseDatabase = {
+  employees: [],
+  projects: [],
+  assignments: [],
+  holidays: [],
+  timesheets: [],
+  lines: [],
+  notifications: [],
+};
 
-export const DEFAULT_PROJECTS: Project[] = [
-  { id: 'proj_alpha', name: 'Project Alpha', client: 'Acme Corporation', type: 'billable' },
-  { id: 'proj_beta', name: 'Project Beta', client: 'Globex Corp', type: 'billable' },
-  { id: 'proj_internal', name: 'Internal R&D', client: 'CimpleSoft', type: 'internal' },
-];
+const getHeaders = () => {
+  const token = localStorage.getItem('cimple_time_tracker_jwt');
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+  };
+};
 
-export const DEFAULT_ASSIGNMENTS: ProjectAssignment[] = [
-  { id: 'asg_elena_alpha', employeeId: 'emp_elena', projectId: 'proj_alpha', plannedHours: 30 },
-  { id: 'asg_elena_internal', employeeId: 'emp_elena', projectId: 'proj_internal', plannedHours: 10 },
-  { id: 'asg_john_beta', employeeId: 'emp_john', projectId: 'proj_beta', plannedHours: 32 },
-  { id: 'asg_john_internal', employeeId: 'emp_john', projectId: 'proj_internal', plannedHours: 8 },
-];
+// Seed or Reset the backend database
+export const resetDatabase = async (): Promise<void> => {
+  const res = await fetch(`${API_BASE_URL}/auth/seed`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }
+  });
+  if (!res.ok) {
+    throw new Error('Failed to reset/seed database');
+  }
+  localStorage.removeItem('cimple_time_tracker_jwt');
+};
 
-export const DEFAULT_HOLIDAYS: Holiday[] = [
-  { id: 'hol_newyear', date: '2026-01-01', name: "New Year's Day", region: 'Global', type: 'public' },
-  { id: 'hol_memorial', date: '2026-05-25', name: 'Memorial Day', region: 'US', type: 'public' },
-  { id: 'hol_foundation', date: '2026-06-08', name: 'CimpleSoft Foundation Day', region: 'Global', type: 'shutdown' },
-  { id: 'hol_independence', date: '2026-07-04', name: 'Independence Day', region: 'US', type: 'public' },
-  { id: 'hol_diwali', date: '2026-11-08', name: 'Diwali Festival', region: 'IN', type: 'public' },
-  { id: 'hol_christmas', date: '2026-12-25', name: 'Christmas Day', region: 'Global', type: 'public' },
-];
+// Get seeded personas list from public endpoint
+export const fetchSeededEmployees = async (): Promise<Employee[]> => {
+  const res = await fetch(`${API_BASE_URL}/auth/users`);
+  if (!res.ok) {
+    throw new Error('Failed to fetch user list');
+  }
+  const users = await res.json();
+  return users.map((u: any) => ({
+    id: u._id,
+    name: u.name,
+    role: u.role,
+    email: u.email,
+    region: u.region
+  }));
+};
 
-// Seed some initial timesheets
-const seedTimesheets = (): { timesheets: Timesheet[]; lines: TimesheetLine[]; notifications: SystemNotification[] } => {
+// Login user and store JWT token
+export const loginUser = async (email: string): Promise<Employee> => {
+  const res = await fetch(`${API_BASE_URL}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password: 'password123' }) // Default password
+  });
+
+  if (!res.ok) {
+    throw new Error('Login failed');
+  }
+
+  const data = await res.json();
+  localStorage.setItem('cimple_time_tracker_jwt', data.token);
+  
+  return {
+    id: data.user.id,
+    name: data.user.name,
+    role: data.user.role,
+    email: data.user.email,
+    region: data.user.region
+  };
+};
+
+// Helper mapper for timesheets and lines
+const mapTimesheetsAndLines = (mongoTimesheets: any[]): { timesheets: Timesheet[], lines: TimesheetLine[] } => {
   const timesheets: Timesheet[] = [];
   const lines: TimesheetLine[] = [];
-  const notifications: SystemNotification[] = [];
 
-  // 1. Elena's Approved Timesheet for Week of 2026-05-25 (Memorial Day was Monday, May 25)
-  // She worked on the Holiday (Memorial Day) and entered a comment.
-  const t1Id = 'ts_elena_w1';
-  timesheets.push({
-    id: t1Id,
-    employeeId: 'emp_elena',
-    weekStartDate: '2026-05-25',
-    status: 'Approved',
-    submittedAt: '2026-05-29T17:00:00Z',
-    rejectionReason: null,
-    slaExpiresAt: null,
-    isEscalated: false,
+  mongoTimesheets.forEach((ts: any) => {
+    const empId = typeof ts.employeeId === 'object' && ts.employeeId !== null
+      ? ts.employeeId._id
+      : ts.employeeId;
+
+    timesheets.push({
+      id: ts._id,
+      employeeId: empId,
+      weekStartDate: ts.weekStartDate,
+      status: ts.status,
+      submittedAt: ts.submittedAt || null,
+      rejectionReason: ts.rejectionReason || null,
+      slaExpiresAt: ts.slaExpiresAt || null,
+      isEscalated: ts.isEscalated || false,
+    });
+
+    if (ts.lines && Array.isArray(ts.lines)) {
+      ts.lines.forEach((line: any, idx: number) => {
+        const projectId = typeof line.projectId === 'object' && line.projectId !== null ? line.projectId._id : line.projectId;
+        lines.push({
+          id: line._id || `line_${ts._id}_${projectId}_${idx}`,
+          timesheetId: ts._id,
+          projectId: projectId,
+          hours: line.hours,
+          comments: line.comments,
+        });
+      });
+    }
   });
 
-  lines.push({
-    id: 'line_elena_w1_alpha',
-    timesheetId: t1Id,
-    projectId: 'proj_alpha',
-    hours: [6, 8, 8, 8, 8, 0, 0], // Worked 6 hrs on Monday (Memorial Day)
-    comments: ['Worked 6 hours on Memorial Day for hotfix deployment.', '', '', '', '', '', ''],
-  });
-
-  lines.push({
-    id: 'line_elena_w1_internal',
-    timesheetId: t1Id,
-    projectId: 'proj_internal',
-    hours: [2, 0, 0, 0, 0, 0, 0], // Worked 2 hrs on internal
-    comments: ['Required administrative startup tasks.', '', '', '', '', '', ''],
-  });
-
-  // 2. John's Submitted Timesheet for Week of 2026-06-01 (Awaiting Approval)
-  // Submitted 2 hours ago (so PM Marcus has a pending item)
-  const t2Id = 'ts_john_w2';
-  const now = new Date();
-  const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString();
-  const slaExpires = new Date(now.getTime() + 22 * 60 * 60 * 1000).toISOString(); // 22h left (total 24h)
-
-  timesheets.push({
-    id: t2Id,
-    employeeId: 'emp_john',
-    weekStartDate: '2026-06-01',
-    status: 'Submitted',
-    submittedAt: twoHoursAgo,
-    rejectionReason: null,
-    slaExpiresAt: slaExpires,
-    isEscalated: false,
-  });
-
-  lines.push({
-    id: 'line_john_w2_beta',
-    timesheetId: t2Id,
-    projectId: 'proj_beta',
-    hours: [8, 8, 8, 8, 8, 0, 0],
-    comments: ['', '', '', '', '', '', ''],
-  });
-
-  lines.push({
-    id: 'line_john_w2_internal',
-    timesheetId: t2Id,
-    projectId: 'proj_internal',
-    hours: [0, 0, 0, 1, 1, 0, 0],
-    comments: ['', '', '', 'Team sync.', 'Weekly reporting.', '', ''],
-  });
-
-  // 3. Elena's Draft Timesheet for the Current Week (2026-06-01)
-  const t3Id = 'ts_elena_w3';
-  timesheets.push({
-    id: t3Id,
-    employeeId: 'emp_elena',
-    weekStartDate: '2026-06-01',
-    status: 'Draft',
-    submittedAt: null,
-    rejectionReason: null,
-    slaExpiresAt: null,
-    isEscalated: false,
-  });
-
-  lines.push({
-    id: 'line_elena_w3_alpha',
-    timesheetId: t3Id,
-    projectId: 'proj_alpha',
-    hours: [8, 8, 8, 4, 0, 0, 0], // Partial draft
-    comments: ['', '', '', '', '', '', ''],
-  });
-
-  // Seed notification history
-  notifications.push({
-    id: 'notif_1',
-    recipientId: 'emp_elena',
-    title: 'Timesheet Approved',
-    message: 'Your timesheet for the week of May 25, 2026 was approved by Marcus Vance.',
-    createdAt: new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString(),
-    isRead: true,
-  });
-
-  return { timesheets, lines, notifications };
+  return { timesheets, lines };
 };
 
-export const getDatabase = (): DataverseDatabase => {
-  const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
-  if (!raw) {
-    const { timesheets, lines, notifications } = seedTimesheets();
-    const db: DataverseDatabase = {
-      employees: DEFAULT_EMPLOYEES,
-      projects: DEFAULT_PROJECTS,
-      assignments: DEFAULT_ASSIGNMENTS,
-      holidays: DEFAULT_HOLIDAYS,
-      timesheets,
-      lines,
-      notifications,
-    };
-    saveDatabase(db);
-    return db;
+// Fetch unified database state from backend
+export const getDatabase = async (role?: string): Promise<DataverseDatabase> => {
+  const token = localStorage.getItem('cimple_time_tracker_jwt');
+  if (!token) {
+    return EMPTY_DATABASE;
   }
+
   try {
-    return JSON.parse(raw);
-  } catch (e) {
-    console.error('Failed to parse database, resetting...', e);
-    const { timesheets, lines, notifications } = seedTimesheets();
-    const db: DataverseDatabase = {
-      employees: DEFAULT_EMPLOYEES,
-      projects: DEFAULT_PROJECTS,
-      assignments: DEFAULT_ASSIGNMENTS,
-      holidays: DEFAULT_HOLIDAYS,
+    // 1. Fetch dynamic employees
+    const employees = await fetchSeededEmployees();
+
+    // 2. Fetch holidays
+    const holidaysRes = await fetch(`${API_BASE_URL}/holidays`, { headers: getHeaders() });
+    const rawHolidays = holidaysRes.ok ? await holidaysRes.json() : [];
+    const holidays: Holiday[] = rawHolidays.map((h: any) => ({
+      id: h._id,
+      date: h.date,
+      name: h.name,
+      region: h.region,
+      type: h.type
+    }));
+
+    // 3. Fetch projects
+    const projectsRes = await fetch(`${API_BASE_URL}/projects`, { headers: getHeaders() });
+    const rawProjects = projectsRes.ok ? await projectsRes.json() : [];
+    const projects: Project[] = rawProjects.map((p: any) => ({
+      id: p._id,
+      name: p.name,
+      client: p.client,
+      type: p.type
+    }));
+
+    // 4. Fetch assignments
+    const assignmentsRes = await fetch(`${API_BASE_URL}/assignments`, { headers: getHeaders() });
+    const rawAssignments = assignmentsRes.ok ? await assignmentsRes.json() : [];
+    const assignments: ProjectAssignment[] = rawAssignments.map((a: any) => {
+      const empId = typeof a.employeeId === 'object' && a.employeeId !== null
+        ? a.employeeId._id
+        : a.employeeId;
+      const projectId = typeof a.projectId === 'object' && a.projectId !== null
+        ? a.projectId._id
+        : a.projectId;
+
+      return {
+        id: a._id,
+        employeeId: empId,
+        projectId: projectId,
+        plannedHours: a.plannedHours
+      };
+    });
+
+    // 5. Fetch timesheets based on role (Employee sees own, Managers/HR see approvals)
+    let rawTimesheets: any[] = [];
+    if (role === 'Employee') {
+      const tsRes = await fetch(`${API_BASE_URL}/timesheets/my`, { headers: getHeaders() });
+      rawTimesheets = tsRes.ok ? await tsRes.json() : [];
+    } else if (role) {
+      const tsRes = await fetch(`${API_BASE_URL}/timesheets/approvals`, { headers: getHeaders() });
+      rawTimesheets = tsRes.ok ? await tsRes.json() : [];
+    }
+
+    const { timesheets, lines } = mapTimesheetsAndLines(rawTimesheets);
+
+    // 6. Fetch notifications
+    const notifRes = await fetch(`${API_BASE_URL}/notifications`, { headers: getHeaders() });
+    const rawNotifs = notifRes.ok ? await notifRes.json() : [];
+    const notifications: SystemNotification[] = rawNotifs.map((n: any) => ({
+      id: n._id,
+      recipientId: n.recipientId,
+      title: n.title,
+      message: n.message,
+      createdAt: n.createdAt,
+      isRead: n.isRead
+    }));
+
+    return {
+      employees,
+      projects,
+      assignments,
+      holidays,
       timesheets,
       lines,
       notifications,
     };
-    saveDatabase(db);
-    return db;
+  } catch (error) {
+    console.error('Failed to fetch database state', error);
+    return EMPTY_DATABASE;
   }
 };
 
-export const saveDatabase = (db: DataverseDatabase): void => {
-  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(db));
-};
-
-export const resetDatabase = (): DataverseDatabase => {
-  localStorage.removeItem(LOCAL_STORAGE_KEY);
-  return getDatabase();
-};
-
-// State Mutations helper library
-export const saveTimesheet = (
-  employeeId: string,
+// Save timesheet draft
+export const saveTimesheet = async (
+  _employeeId: string,
   weekStartDate: string,
   gridLines: { projectId: string; hours: number[]; comments: string[] }[]
-): DataverseDatabase => {
-  const db = getDatabase();
-  
-  // Find or create timesheet header
-  let ts = db.timesheets.find(t => t.employeeId === employeeId && t.weekStartDate === weekStartDate);
-  if (!ts) {
-    ts = {
-      id: `ts_${employeeId}_${weekStartDate.replace(/-/g, '')}`,
-      employeeId,
+): Promise<void> => {
+  const res = await fetch(`${API_BASE_URL}/timesheets/save`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({
       weekStartDate,
-      status: 'Draft',
-      submittedAt: null,
-      rejectionReason: null,
-      slaExpiresAt: null,
-      isEscalated: false,
-    };
-    db.timesheets.push(ts);
-  } else {
-    // If timesheet exists and is not draft or recalled, block saving
-    if (ts.status !== 'Draft' && ts.status !== 'Recalled' && ts.status !== 'Rejected') {
-      throw new Error("Cannot save. Timesheet is already submitted or approved.");
-    }
+      lines: gridLines.map(gl => ({
+        projectId: gl.projectId,
+        hours: gl.hours,
+        comments: gl.comments
+      }))
+    })
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.message || 'Failed to save timesheet');
   }
-
-  // Remove existing lines for this timesheet
-  db.lines = db.lines.filter(l => l.timesheetId !== ts!.id);
-
-  // Add new lines
-  gridLines.forEach((gl, idx) => {
-    db.lines.push({
-      id: `line_${ts!.id}_${gl.projectId}_${idx}`,
-      timesheetId: ts!.id,
-      projectId: gl.projectId,
-      hours: [...gl.hours],
-      comments: [...gl.comments],
-    });
-  });
-
-  saveDatabase(db);
-  return db;
 };
 
-export const submitTimesheet = (timesheetId: string): DataverseDatabase => {
-  const db = getDatabase();
-  const ts = db.timesheets.find(t => t.id === timesheetId);
-  if (!ts) throw new Error("Timesheet not found");
-
-  const now = new Date();
-  // SLA Expires in simulated 24 hours.
-  // We'll set a standard timestamp (24h later)
-  const slaExpires = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString();
-
-  ts.status = 'Submitted';
-  ts.submittedAt = now.toISOString();
-  ts.slaExpiresAt = slaExpires;
-  ts.rejectionReason = null;
-  ts.isEscalated = false;
-
-  // Add system notification for Manager Marcus
-  db.notifications.push({
-    id: `notif_${Date.now()}`,
-    recipientId: 'emp_marcus',
-    title: 'New Timesheet Submitted',
-    message: `${db.employees.find(e => e.id === ts.employeeId)?.name} has submitted a timesheet for the week of ${ts.weekStartDate}.`,
-    createdAt: now.toISOString(),
-    isRead: false,
+// Submit timesheet
+export const submitTimesheet = async (timesheetId: string): Promise<void> => {
+  const res = await fetch(`${API_BASE_URL}/timesheets/submit`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({ timesheetId })
   });
 
-  saveDatabase(db);
-  return db;
-};
-
-export const recallTimesheet = (timesheetId: string): DataverseDatabase => {
-  const db = getDatabase();
-  const ts = db.timesheets.find(t => t.id === timesheetId);
-  if (!ts) throw new Error("Timesheet not found");
-
-  if (ts.status !== 'Submitted') {
-    throw new Error("Can only recall submitted timesheets");
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.message || 'Submission failed');
   }
-
-  ts.status = 'Draft';
-  ts.submittedAt = null;
-  ts.slaExpiresAt = null;
-  ts.isEscalated = false;
-
-  saveDatabase(db);
-  return db;
 };
 
-export const approveTimesheet = (timesheetId: string, managerId: string): DataverseDatabase => {
-  const db = getDatabase();
-  const ts = db.timesheets.find(t => t.id === timesheetId);
-  if (!ts) throw new Error("Timesheet not found");
-
-  ts.status = 'Approved';
-  ts.slaExpiresAt = null;
-
-  const managerName = db.employees.find(e => e.id === managerId)?.name || 'Manager';
-
-  // Notify Employee
-  db.notifications.push({
-    id: `notif_${Date.now()}`,
-    recipientId: ts.employeeId,
-    title: 'Timesheet Approved',
-    message: `Your timesheet for the week of ${ts.weekStartDate} has been approved by ${managerName}.`,
-    createdAt: new Date().toISOString(),
-    isRead: false,
+// Recall timesheet
+export const recallTimesheet = async (timesheetId: string): Promise<void> => {
+  const res = await fetch(`${API_BASE_URL}/timesheets/recall`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({ timesheetId })
   });
 
-  saveDatabase(db);
-  return db;
-};
-
-export const rejectTimesheet = (timesheetId: string, managerId: string, reason: string): DataverseDatabase => {
-  if (!reason.trim()) throw new Error("Rejection reason is mandatory");
-
-  const db = getDatabase();
-  const ts = db.timesheets.find(t => t.id === timesheetId);
-  if (!ts) throw new Error("Timesheet not found");
-
-  ts.status = 'Rejected';
-  ts.rejectionReason = reason;
-  ts.slaExpiresAt = null;
-
-  const managerName = db.employees.find(e => e.id === managerId)?.name || 'Manager';
-
-  // Notify Employee
-  db.notifications.push({
-    id: `notif_${Date.now()}`,
-    recipientId: ts.employeeId,
-    title: 'Timesheet Rejected',
-    message: `Your timesheet for the week of ${ts.weekStartDate} was rejected by ${managerName}. Reason: ${reason}`,
-    createdAt: new Date().toISOString(),
-    isRead: false,
-  });
-
-  saveDatabase(db);
-  return db;
-};
-
-export const sendBackForCorrection = (timesheetId: string, managerId: string, reason: string): DataverseDatabase => {
-  if (!reason.trim()) throw new Error("Correction reason is mandatory");
-
-  const db = getDatabase();
-  const ts = db.timesheets.find(t => t.id === timesheetId);
-  if (!ts) throw new Error("Timesheet not found");
-
-  // Send back sets it to Recalled/Draft so the employee can edit it again
-  ts.status = 'Draft';
-  ts.rejectionReason = `Correction Needed: ${reason}`;
-  ts.slaExpiresAt = null;
-  ts.submittedAt = null;
-
-  const managerName = db.employees.find(e => e.id === managerId)?.name || 'Manager';
-
-  // Notify Employee
-  db.notifications.push({
-    id: `notif_${Date.now()}`,
-    recipientId: ts.employeeId,
-    title: 'Timesheet Correction Required',
-    message: `Your timesheet for the week of ${ts.weekStartDate} has been returned for correction by ${managerName}. Reason: ${reason}`,
-    createdAt: new Date().toISOString(),
-    isRead: false,
-  });
-
-  saveDatabase(db);
-  return db;
-};
-
-export const addHoliday = (holiday: Omit<Holiday, 'id'>): DataverseDatabase => {
-  const db = getDatabase();
-  const id = `hol_${Date.now()}`;
-  db.holidays.push({ ...holiday, id });
-  saveDatabase(db);
-  return db;
-};
-
-export const deleteHoliday = (holidayId: string): DataverseDatabase => {
-  const db = getDatabase();
-  db.holidays = db.holidays.filter(h => h.id !== holidayId);
-  saveDatabase(db);
-  return db;
-};
-
-export const addAssignment = (assignment: Omit<ProjectAssignment, 'id'>): DataverseDatabase => {
-  const db = getDatabase();
-  
-  // Check duplicate
-  const exists = db.assignments.some(
-    a => a.employeeId === assignment.employeeId && a.projectId === assignment.projectId
-  );
-  if (exists) throw new Error("Assignment already exists");
-
-  const id = `asg_${Date.now()}`;
-  db.assignments.push({ ...assignment, id });
-  saveDatabase(db);
-  return db;
-};
-
-export const deleteAssignment = (assignmentId: string): DataverseDatabase => {
-  const db = getDatabase();
-  db.assignments = db.assignments.filter(a => a.id !== assignmentId);
-  saveDatabase(db);
-  return db;
-};
-
-// Check for SLA breach and escalate in real time
-export const checkAndProcessSlaEscalations = (): DataverseDatabase => {
-  const db = getDatabase();
-  const now = new Date();
-  let updated = false;
-
-  db.timesheets.forEach(ts => {
-    if (ts.status === 'Submitted' && ts.slaExpiresAt && !ts.isEscalated) {
-      const expires = new Date(ts.slaExpiresAt);
-      if (now > expires) {
-        ts.isEscalated = true;
-        updated = true;
-
-        // Notify HR admin Sarah
-        db.notifications.push({
-          id: `notif_${Date.now()}_esc_${ts.id}`,
-          recipientId: 'emp_sarah',
-          title: 'SLA Escalation Alert',
-          message: `Timesheet for ${db.employees.find(e => e.id === ts.employeeId)?.name} (week of ${ts.weekStartDate}) has breached SLA and has been escalated to HR.`,
-          createdAt: now.toISOString(),
-          isRead: false,
-        });
-      }
-    }
-  });
-
-  if (updated) {
-    saveDatabase(db);
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.message || 'Recall failed');
   }
-  return db;
+};
+
+// Approve timesheet
+export const approveTimesheet = async (timesheetId: string, _managerId: string): Promise<void> => {
+  const res = await fetch(`${API_BASE_URL}/timesheets/${timesheetId}/approve`, {
+    method: 'POST',
+    headers: getHeaders()
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.message || 'Approval failed');
+  }
+};
+
+// Reject timesheet
+export const rejectTimesheet = async (timesheetId: string, _managerId: string, reason: string): Promise<void> => {
+  const res = await fetch(`${API_BASE_URL}/timesheets/${timesheetId}/reject`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({ reason })
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.message || 'Rejection failed');
+  }
+};
+
+// Send back timesheet for correction
+export const sendBackForCorrection = async (timesheetId: string, _managerId: string, reason: string): Promise<void> => {
+  const res = await fetch(`${API_BASE_URL}/timesheets/${timesheetId}/send-back`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({ reason })
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.message || 'Correction request failed');
+  }
+};
+
+// Add holiday
+export const addHoliday = async (holiday: Omit<Holiday, 'id'>): Promise<void> => {
+  const res = await fetch(`${API_BASE_URL}/holidays`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify(holiday)
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.message || 'Failed to add holiday');
+  }
+};
+
+// Delete holiday
+export const deleteHoliday = async (holidayId: string): Promise<void> => {
+  const res = await fetch(`${API_BASE_URL}/holidays/${holidayId}`, {
+    method: 'DELETE',
+    headers: getHeaders()
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.message || 'Failed to delete holiday');
+  }
+};
+
+// Add assignment
+export const addAssignment = async (assignment: Omit<ProjectAssignment, 'id'>): Promise<void> => {
+  const res = await fetch(`${API_BASE_URL}/assignments`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({
+      employeeId: assignment.employeeId, // Already the MongoDB ObjectId
+      projectId: assignment.projectId,
+      plannedHours: assignment.plannedHours
+    })
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.message || 'Failed to create assignment');
+  }
+};
+
+// Delete assignment
+export const deleteAssignment = async (assignmentId: string): Promise<void> => {
+  const res = await fetch(`${API_BASE_URL}/assignments/${assignmentId}`, {
+    method: 'DELETE',
+    headers: getHeaders()
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.message || 'Failed to delete assignment');
+  }
+};
+
+// Add employee
+export const addEmployee = async (employee: Omit<Employee, 'id'> & { password?: string }): Promise<void> => {
+  const res = await fetch(`${API_BASE_URL}/auth/users`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({
+      name: employee.name,
+      email: employee.email,
+      role: employee.role,
+      region: employee.region,
+      password: employee.password || 'password123'
+    })
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.message || 'Failed to create employee');
+  }
+};
+
+// Delete employee
+export const deleteEmployee = async (employeeId: string): Promise<void> => {
+  const res = await fetch(`${API_BASE_URL}/auth/users/${employeeId}`, {
+    method: 'DELETE',
+    headers: getHeaders()
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.message || 'Failed to delete employee');
+  }
+};
+
+// Add project
+export const addProject = async (project: Omit<Project, 'id'>): Promise<void> => {
+  const res = await fetch(`${API_BASE_URL}/projects`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify(project)
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.message || 'Failed to create project');
+  }
+};
+
+// Delete project
+export const deleteProject = async (projectId: string): Promise<void> => {
+  const res = await fetch(`${API_BASE_URL}/projects/${projectId}`, {
+    method: 'DELETE',
+    headers: getHeaders()
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.message || 'Failed to delete project');
+  }
+};
+
+// Mark notifications read
+export const markNotificationsRead = async (): Promise<void> => {
+  const res = await fetch(`${API_BASE_URL}/notifications/mark-read`, {
+    method: 'POST',
+    headers: getHeaders()
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.message || 'Failed to mark notifications read');
+  }
+};
+
+// SLA Check trigger
+export const checkAndProcessSlaEscalations = async (): Promise<void> => {
+  // Handled on backend
 };
