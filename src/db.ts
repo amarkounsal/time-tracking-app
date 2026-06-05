@@ -66,7 +66,7 @@ export interface DataverseDatabase {
   notifications: SystemNotification[];
 }
 
-const API_BASE_URL = (import.meta.env.VITE_API_URL as string) || 'http://192.168.1.75:5050/api';
+const API_BASE_URL = (import.meta.env.VITE_API_URL as string) || 'https://tapi.keeelai.com/api';
 
 export const EMPTY_DATABASE: DataverseDatabase = {
   employees: [],
